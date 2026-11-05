@@ -494,10 +494,27 @@
     .calendar-day.selected { background: var(--green-light); border-color: var(--green); }
     .calendar-day.today .day-number { color: var(--green-dark); font-weight: 800; }
     .day-number { font-size: 13px; font-weight: 500; }
-    .day-count { font-size: 10px; color: var(--green-dark); white-space: nowrap; }
-    .day-dots { display: flex; gap: 3px; min-height: 5px; }
-    .day-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
-    .day-dot.color { background: var(--brown); }
+    .day-menu-counts {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      width: 100%;
+      margin-top: 2px;
+    }
+    .day-menu-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      width: 100%;
+      font-size: 9px;
+      line-height: 1.25;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .day-menu-count.cut { color: var(--green-dark); }
+    .day-menu-count.color { color: #96795F; }
     .calendar-legend {
       display: flex; gap: 15px; flex-wrap: wrap;
       color: var(--muted); font-size: 10px; margin-top: 13px;
@@ -509,7 +526,7 @@
       .calendar-card { padding: 17px 11px; }
       .calendar-day { min-height: 61px; padding: 6px 2px; gap: 4px; }
       .day-number { font-size: 12px; }
-      .day-count { font-size: 9px; }
+      .day-menu-count { font-size: 8px; letter-spacing: -.04em; }
       .calendar-weekdays, .calendar-grid { gap: 3px; }
       .calendar-month { font-size: 18px; }
     }
@@ -799,12 +816,13 @@
         value === selected ? "selected" : "",
         value === todayValue ? "today" : ""
       ].filter(Boolean).join(" ");
-      const dots = `${cutCount ? '<i class="day-dot"></i>' : ''}${colorCount ? '<i class="day-dot color"></i>' : ''}`;
-      const countText = dayReservations.length ? `${dayReservations.length}件` : "";
+      const menuCounts = `
+        ${cutCount ? `<span class="day-menu-count cut">カット ${cutCount}</span>` : ""}
+        ${colorCount ? `<span class="day-menu-count color">カラー ${colorCount}</span>` : ""}
+      `;
       cells += `<button type="button" class="${classes}" data-calendar-date="${value}">
         <span class="day-number">${d.getDate()}</span>
-        <span class="day-dots">${dots}</span>
-        <span class="day-count">${countText}</span>
+        <span class="day-menu-counts">${menuCounts}</span>
       </button>`;
     }
     grid.innerHTML = cells;
