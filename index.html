@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -143,6 +144,7 @@
       background: white;
       border-radius: 20px;
       padding: 25px;
+      margin-bottom: 32px;
       box-shadow: var(--shadow);
     }
 
@@ -440,12 +442,69 @@
     .toast.show { opacity: 1; }
 
 
+
+    /* Monthly sales summary */
+    .monthly-summary {
+      background: #FFFFFF;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 23px 25px;
+      margin: 0 0 22px;
+      box-shadow: var(--shadow);
+    }
+    .monthly-summary-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 17px;
+    }
+    .monthly-summary-heading h2 {
+      margin: 0;
+      color: var(--green-dark);
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .demo-price-note { color: var(--muted); font-size: 10px; }
+    .monthly-total {
+      background: #F2F6F0;
+      border-radius: 14px;
+      padding: 17px 19px;
+      margin-bottom: 13px;
+    }
+    .monthly-total-label { color: var(--muted); font-size: 11px; margin-bottom: 7px; }
+    .monthly-total-value { color: var(--green-dark); font-size: 29px; font-weight: 700; letter-spacing: .02em; }
+    .monthly-total-value small { font-size: 13px; font-weight: 500; margin-left: 4px; }
+    .monthly-breakdown {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .monthly-menu-card {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 15px;
+    }
+    .monthly-menu-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .monthly-menu-title.cut { color: var(--green-dark); }
+    .monthly-menu-title.color { color: #96795F; }
+    .monthly-menu-count { color: var(--text); font-size: 13px; margin-bottom: 5px; }
+    .monthly-menu-sales { color: var(--muted); font-size: 12px; }
+    .monthly-reservation-count { color: var(--muted); font-size: 11px; margin-top: 12px; text-align: right; }
+    @media (max-width: 650px) {
+      .monthly-summary { padding: 18px 14px; }
+      .monthly-summary-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .monthly-total-value { font-size: 25px; }
+      .monthly-breakdown { gap: 8px; }
+      .monthly-menu-card { padding: 12px 10px; }
+    }
+
     /* Monthly calendar */
     .calendar-card {
       background: white;
       border-radius: 20px;
       padding: 25px;
-      margin-bottom: 22px;
+      margin-bottom: 32px;
       box-shadow: var(--shadow);
     }
     .calendar-toolbar {
@@ -675,6 +734,9 @@
     </div>
   </section>
 
+
+
+
   <section class="availability-panel" id="availabilityPanel">
     <h2 class="availability-heading">空き時間検索</h2>
     <div class="availability-controls">
@@ -716,6 +778,30 @@
 
     <div class="reservation-list" id="reservationList"></div>
   </main>
+
+  <section class="monthly-summary">
+    <div class="monthly-summary-heading">
+      <h2>Monthly Overview <span style="font-size:12px;color:#89918A;font-weight:400;">月間集計</span></h2>
+      <span class="demo-price-note">※料金はデモ用の仮設定です</span>
+    </div>
+    <div class="monthly-total">
+      <div class="monthly-total-label" id="monthlySalesLabel">今月の売上見込み</div>
+      <div class="monthly-total-value"><span id="monthlySalesTotal">0</span><small>円</small></div>
+    </div>
+    <div class="monthly-breakdown">
+      <div class="monthly-menu-card">
+        <div class="monthly-menu-title cut">● カット</div>
+        <div class="monthly-menu-count"><strong id="monthlyCutCount">0</strong> 件</div>
+        <div class="monthly-menu-sales"><span id="monthlyCutPrice">4,500</span>円 × 件数 = <strong id="monthlyCutSales">0</strong>円</div>
+      </div>
+      <div class="monthly-menu-card">
+        <div class="monthly-menu-title color">● カラー</div>
+        <div class="monthly-menu-count"><strong id="monthlyColorCount">0</strong> 件</div>
+        <div class="monthly-menu-sales"><span id="monthlyColorPrice">7,000</span>円 × 件数 = <strong id="monthlyColorSales">0</strong>円</div>
+      </div>
+    </div>
+    <div class="monthly-reservation-count">月間予約合計：<strong id="monthlyReservationCount">0</strong> 件</div>
+  </section>
 
   <div class="footer">SALON MANAGER · SIMPLE & BEAUTIFUL</div>
 </div>
@@ -789,6 +875,10 @@
     `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
   const duration = menu => menu === "カラー" ? 120 : 60;
+
+  // デモ用の仮料金。実際の店舗料金が分かったら設定画面で変更できるようにする。
+  const MENU_PRICES = { "カット": 4500, "カラー": 7000 };
+  const yen = value => Math.round(value).toLocaleString("ja-JP");
 
   let reservations = loadReservations();
   let selectedMenu = "カット";
@@ -876,7 +966,30 @@
   }
 
 
+  function renderMonthlySummary() {
+    const year = calendarMonth.getFullYear();
+    const month = String(calendarMonth.getMonth() + 1).padStart(2, "0");
+    const monthKey = `${year}-${month}`;
+    const monthlyReservations = reservations.filter(r => r.date.startsWith(monthKey));
+    const cutCount = monthlyReservations.filter(r => r.menu === "カット").length;
+    const colorCount = monthlyReservations.filter(r => r.menu === "カラー").length;
+    const cutSales = cutCount * MENU_PRICES["カット"];
+    const colorSales = colorCount * MENU_PRICES["カラー"];
+    const totalSales = cutSales + colorSales;
+
+    document.getElementById("monthlySalesLabel").textContent = `${year}年${Number(month)}月の売上見込み`;
+    document.getElementById("monthlySalesTotal").textContent = yen(totalSales);
+    document.getElementById("monthlyCutCount").textContent = cutCount;
+    document.getElementById("monthlyColorCount").textContent = colorCount;
+    document.getElementById("monthlyCutPrice").textContent = yen(MENU_PRICES["カット"]);
+    document.getElementById("monthlyColorPrice").textContent = yen(MENU_PRICES["カラー"]);
+    document.getElementById("monthlyCutSales").textContent = yen(cutSales);
+    document.getElementById("monthlyColorSales").textContent = yen(colorSales);
+    document.getElementById("monthlyReservationCount").textContent = monthlyReservations.length;
+  }
+
   function renderCalendar() {
+    renderMonthlySummary();
     const year = calendarMonth.getFullYear();
     const month = calendarMonth.getMonth();
     document.getElementById("calendarMonth").textContent = `${year}年${month + 1}月`;
