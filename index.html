@@ -281,6 +281,32 @@
     .secondary-action { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:11px; padding:12px; font-weight:600; }
     .danger-action { border:1px solid #E8CFCF; background:#FFF8F8; color:var(--danger); border-radius:11px; padding:12px; font-weight:600; }
 
+
+    .customers-view { max-width:980px; margin:0 auto; padding:30px 20px 60px; }
+    .customer-toolbar { display:flex; align-items:center; gap:14px; margin:20px 0 14px; }
+    .customer-toolbar input { flex:1; min-width:0; padding:13px 15px; border:1px solid var(--line); border-radius:12px; background:#fff; color:var(--text); }
+    .customer-list { display:grid; gap:10px; }
+    .customer-card { display:flex; align-items:center; gap:14px; padding:16px 18px; border:1px solid var(--line); border-radius:15px; background:#fff; cursor:pointer; transition:.2s; }
+    .customer-card:hover { border-color:var(--green); transform:translateY(-1px); }
+    .customer-avatar { width:42px; height:42px; flex:0 0 42px; display:grid; place-items:center; border-radius:50%; background:var(--green-light); color:var(--green-dark); font-weight:700; }
+    .customer-card-main { flex:1; min-width:0; }
+    .customer-card-name { font-weight:650; margin-bottom:5px; }
+    .customer-card-meta { color:var(--muted); font-size:11px; }
+    .customer-card-arrow { color:var(--muted); font-size:20px; }
+    .customer-empty { padding:40px 15px; text-align:center; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:15px; font-size:13px; }
+    .customer-detail-modal { max-width:500px; }
+    .customer-profile { display:flex; align-items:center; gap:13px; padding:3px 0 22px; border-bottom:1px solid var(--line); }
+    .customer-profile .customer-avatar { width:52px; height:52px; flex-basis:52px; font-size:18px; }
+    .customer-profile-name { font-size:17px; font-weight:700; }
+    .customer-profile-phone { margin-top:5px; font-size:12px; color:var(--muted); }
+    .customer-history-heading { display:flex; justify-content:space-between; margin:22px 0 12px; font-size:13px; font-weight:700; }
+    .customer-history-heading span { color:var(--muted); font-weight:400; }
+    .customer-history { display:grid; gap:9px; }
+    .history-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; background:#F7F9F6; border-radius:11px; font-size:12px; }
+    .history-item-date { font-weight:650; }
+    .history-item-menu { color:var(--muted); white-space:nowrap; }
+    @media (max-width:600px) { .customer-toolbar { align-items:stretch; flex-direction:column; gap:8px; } .customer-card { padding:13px; } }
+
     .empty {
       padding: 55px 15px;
       text-align: center;
@@ -743,6 +769,7 @@
     </div>
     <div class="header-tools">
       <div class="header-date" id="todayLabel"></div>
+      <button type="button" class="small-button" id="customersButton">お客様</button>
       <button type="button" class="small-button settings-toggle" id="settingsButton">⚙ 設定</button>
     </div>
   </header>
@@ -819,6 +846,23 @@
       </div>
     </form>
     <p class="settings-footnote">※現在はデモ用の設定です。実店舗の営業ルール・料金は未確認です。</p>
+  </section>
+
+  <section class="customers-view" id="customersView" hidden>
+    <div class="settings-heading">
+      <div>
+        <div class="settings-eyebrow">CUSTOMER MANAGEMENT</div>
+        <h1>お客様一覧</h1>
+        <p>お客様の基本情報と来店履歴を確認できます。</p>
+      </div>
+      <button type="button" class="small-button" id="closeCustomers">← 予約画面へ戻る</button>
+    </div>
+    <div class="customer-toolbar">
+      <input type="search" id="customerSearch" placeholder="お客様の名前で検索" aria-label="お客様の名前で検索">
+      <span id="customerCount" class="settings-muted"></span>
+    </div>
+    <div class="customer-list" id="customerList"></div>
+    <p class="settings-footnote">※デモ用の顧客情報は、このブラウザ内に保存されます。実在のお客様の情報は入力しないでください。</p>
   </section>
 
   <div id="dashboardView">
@@ -976,6 +1020,11 @@
       </div>
 
       <div class="form-group">
+        <label for="reservePhone">電話番号（任意）</label>
+        <input type="tel" id="reservePhone" placeholder="例：090-1234-5678" maxlength="20">
+      </div>
+
+      <div class="form-group">
         <label for="reserveTime">予約開始時間</label>
         <select id="reserveTime" required></select>
         <div class="availability-note" id="availabilityNote"></div>
@@ -1005,6 +1054,21 @@
       <button type="button" class="secondary-action" id="editReservation">予約を編集</button>
       <button type="button" class="danger-action" id="deleteDetailReservation">削除</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="customerDetailBackdrop">
+  <div class="modal customer-detail-modal">
+    <div class="modal-header">
+      <h2>お客様情報</h2>
+      <button type="button" class="close-button" id="closeCustomerDetail">×</button>
+    </div>
+    <div class="customer-profile">
+      <div class="customer-avatar" id="customerAvatar">お</div>
+      <div><div class="customer-profile-name" id="customerDetailName"></div><div class="customer-profile-phone" id="customerDetailPhone"></div></div>
+    </div>
+    <div class="customer-history-heading">来店履歴 <span id="customerVisitCount"></span></div>
+    <div class="customer-history" id="customerHistory"></div>
   </div>
 </div>
 
@@ -1044,9 +1108,57 @@
   const yen = value => Math.round(value).toLocaleString("ja-JP");
 
   let reservations = loadReservations();
+  const CUSTOMER_STORAGE_KEY = "salonManagerDemoCustomers";
+  let customers = loadCustomers();
+  let activeCustomerId = null;
   let selectedMenu = "カット";
   let editingReservationId = null;
   let detailReservationId = null;
+
+  function loadCustomers() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CUSTOMER_STORAGE_KEY) || "null");
+      return Array.isArray(saved) ? saved : [];
+    } catch (e) {
+      console.error("顧客データを読み込めませんでした", e);
+      return [];
+    }
+  }
+
+  function saveCustomers() {
+    localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(customers));
+  }
+
+  function normalizeCustomerName(name) {
+    return String(name || "").trim().replace(/\s+/g, " ");
+  }
+
+  function findOrCreateCustomer(name, phone = "") {
+    const normalized = normalizeCustomerName(name);
+    let customer = customers.find(c => normalizeCustomerName(c.name) === normalized);
+    if (!customer) {
+      customer = { id: "customer-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: normalized, phone: "", createdAt: new Date().toISOString() };
+      customers.push(customer);
+    }
+    if (phone.trim()) customer.phone = phone.trim();
+    return customer;
+  }
+
+  // 既存予約から顧客台帳を自動作成し、予約と顧客を紐づける
+  let customerDataChanged = false;
+  reservations.forEach(reservation => {
+    let customer = reservation.customerId ? customers.find(c => c.id === reservation.customerId) : null;
+    if (!customer) {
+      customer = findOrCreateCustomer(reservation.name || "お名前未登録");
+      reservation.customerId = customer.id;
+      customerDataChanged = true;
+    }
+    if (customer.name !== normalizeCustomerName(reservation.name)) {
+      customer.name = normalizeCustomerName(reservation.name);
+      customerDataChanged = true;
+    }
+  });
+  if (customerDataChanged) { saveCustomers(); localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations)); }
 
   function loadSettings() {
     try {
@@ -1339,6 +1451,8 @@
     const existing = reservationId ? reservations.find(r => r.id === reservationId) : null;
     reserveDate.value = existing ? existing.date : date;
     document.getElementById("reserveName").value = existing ? existing.name : "";
+    const linkedCustomer = existing ? customers.find(c => c.id === existing.customerId) : null;
+    document.getElementById("reservePhone").value = linkedCustomer?.phone || "";
     warning.classList.remove("show");
     selectedMenu = existing ? existing.menu : menu;
     document.querySelector("#reservationForm .submit-button").textContent = existing ? "変更を保存する" : "この内容で予約する";
@@ -1375,6 +1489,53 @@
   function closeDetail() {
     document.getElementById("detailBackdrop").classList.remove("show");
     detailReservationId = null;
+  }
+
+  function customerInitial(name) { return normalizeCustomerName(name).charAt(0) || "お"; }
+
+  function renderCustomers() {
+    const query = normalizeCustomerName(document.getElementById("customerSearch").value).toLowerCase();
+    const filtered = customers.filter(c => normalizeCustomerName(c.name).toLowerCase().includes(query))
+      .map(c => ({ ...c, visits: reservations.filter(r => r.customerId === c.id), lastVisit: reservations.filter(r => r.customerId === c.id).map(r => r.date).sort().at(-1) || "" }))
+      .sort((a,b) => (b.lastVisit || "").localeCompare(a.lastVisit || "") || a.name.localeCompare(b.name, "ja"));
+    document.getElementById("customerCount").textContent = `${filtered.length}名`;
+    const list = document.getElementById("customerList");
+    if (!filtered.length) {
+      list.innerHTML = `<div class="customer-empty">${customers.length ? "該当するお客様が見つかりません。" : "まだお客様が登録されていません。予約を登録すると、こちらに表示されます。"}</div>`;
+      return;
+    }
+    list.innerHTML = filtered.map(c => `
+      <div class="customer-card" role="button" tabindex="0" data-customer="${escapeHTML(c.id)}">
+        <div class="customer-avatar">${escapeHTML(customerInitial(c.name))}</div>
+        <div class="customer-card-main"><div class="customer-card-name">${escapeHTML(c.name)}</div>
+          <div class="customer-card-meta">来店 ${c.visits.length}回${c.lastVisit ? ` ・ 最終来店 ${formatDate(c.lastVisit)}` : " ・ 来店履歴なし"}</div></div>
+        <div class="customer-card-arrow">›</div>
+      </div>`).join("");
+    list.querySelectorAll("[data-customer]").forEach(card => {
+      const open = () => showCustomerDetail(card.dataset.customer);
+      card.addEventListener("click", open);
+      card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    });
+  }
+
+  function showCustomerDetail(id) {
+    const customer = customers.find(c => c.id === id);
+    if (!customer) return;
+    activeCustomerId = id;
+    const history = reservations.filter(r => r.customerId === id).sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    document.getElementById("customerAvatar").textContent = customerInitial(customer.name);
+    document.getElementById("customerDetailName").textContent = customer.name;
+    document.getElementById("customerDetailPhone").textContent = customer.phone || "電話番号未登録";
+    document.getElementById("customerVisitCount").textContent = `${history.length}回`;
+    const historyEl = document.getElementById("customerHistory");
+    historyEl.innerHTML = history.length ? history.map(r => `
+      <div class="history-item"><div><div class="history-item-date">${formatDate(r.date)}</div><div class="customer-card-meta">${escapeHTML(r.time)}～${formatTime(timeToMinutes(r.time) + duration(r.menu))}</div></div><div class="history-item-menu">${escapeHTML(r.menu)}</div></div>`).join("") : `<div class="customer-empty">来店履歴はまだありません。</div>`;
+    document.getElementById("customerDetailBackdrop").classList.add("show");
+  }
+
+  function closeCustomerDetail() {
+    document.getElementById("customerDetailBackdrop").classList.remove("show");
+    activeCustomerId = null;
   }
 
   function showToast(message) {
@@ -1522,6 +1683,7 @@
     const date = reserveDate.value;
     const time = reserveTime.value;
     const name = document.getElementById("reserveName").value.trim();
+    const phone = document.getElementById("reservePhone").value.trim();
 
     if (!date || !time || !name) {
       warning.textContent = "入力内容を確認してください。";
@@ -1536,6 +1698,8 @@
       return;
     }
 
+    const customer = findOrCreateCustomer(name, phone);
+
     if (editingReservationId) {
       const index = reservations.findIndex(r => r.id === editingReservationId);
       if (index < 0) {
@@ -1543,10 +1707,11 @@
         warning.classList.add("show");
         return;
       }
-      reservations[index] = { ...reservations[index], date, time, name, menu: selectedMenu };
+      reservations[index] = { ...reservations[index], date, time, name, menu: selectedMenu, customerId: customer.id };
     } else {
-      reservations.push({ id: Date.now().toString(), date, time, name, menu: selectedMenu });
+      reservations.push({ id: Date.now().toString(), date, time, name, menu: selectedMenu, customerId: customer.id });
     }
+    saveCustomers();
 
     const wasEditing = Boolean(editingReservationId);
     saveReservations();
@@ -1558,6 +1723,24 @@
     showToast(wasEditing ? "予約を変更しました" : "予約を登録しました");
   });
 
+
+  // お客様一覧・詳細
+  const customersView = document.getElementById("customersView");
+  document.getElementById("customersButton").addEventListener("click", () => {
+    dashboardView.hidden = true;
+    settingsView.hidden = true;
+    customersView.hidden = false;
+    renderCustomers();
+  });
+  document.getElementById("closeCustomers").addEventListener("click", () => {
+    customersView.hidden = true;
+    dashboardView.hidden = false;
+  });
+  document.getElementById("customerSearch").addEventListener("input", renderCustomers);
+  document.getElementById("closeCustomerDetail").addEventListener("click", closeCustomerDetail);
+  document.getElementById("customerDetailBackdrop").addEventListener("click", e => {
+    if (e.target.id === "customerDetailBackdrop") closeCustomerDetail();
+  });
 
   // 設定画面
   const settingsView = document.getElementById("settingsView");
