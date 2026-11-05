@@ -1,1 +1,22 @@
 
+{
+  "id": "./",
+  "name": "Salon Manager",
+  "short_name": "Salon",
+  "description": "美容室の予約管理アプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#E9EFE6",
+  "theme_color": "#8FBC8F",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
