@@ -1,1 +1,859 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#8FBC8F">
+  <title>Salon Manager</title>
+  <style>
+    :root {
+      --green: #8FBC8F;
+      --green-dark: #587A5B;
+      --green-light: #EDF4EC;
+      --bg: #F7F8F3;
+      --text: #343B35;
+      --muted: #89918A;
+      --line: #E8ECE5;
+      --white: #FFFFFF;
+      --brown: #B99A7D;
+      --danger: #C87575;
+      --shadow: 0 8px 28px rgba(65, 85, 65, .07);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP",
+        "Yu Gothic", Meiryo, sans-serif;
+      letter-spacing: .025em;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      background: var(--green);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 25px;
+    }
+
+    .brand-name {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 25px;
+      letter-spacing: .02em;
+      color: var(--green-dark);
+      line-height: 1.15;
+    }
+
+    .brand-sub {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .19em;
+      margin-top: 5px;
+    }
+
+    .header-date {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .welcome {
+      margin-bottom: 25px;
+    }
+
+    .welcome h1 {
+      font-size: 23px;
+      font-weight: 500;
+      margin: 0 0 7px;
+    }
+
+    .welcome p {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 25px;
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 17px;
+      padding: 21px 23px;
+      box-shadow: var(--shadow);
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .summary-value {
+      font-size: 29px;
+      font-weight: 600;
+      color: var(--green-dark);
+    }
+
+    .summary-unit {
+      font-size: 12px;
+      font-weight: 400;
+      margin-left: 5px;
+      color: var(--muted);
+    }
+
+    .main-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: var(--shadow);
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .section-heading h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .date-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .date-controls input {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 9px 11px;
+      color: var(--text);
+      background: white;
+    }
+
+    .small-button {
+      background: var(--green-light);
+      border: none;
+      color: var(--green-dark);
+      border-radius: 9px;
+      padding: 9px 13px;
+    }
+
+    .add-button {
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 11px;
+      padding: 12px 19px;
+      font-weight: 600;
+      transition: .2s;
+    }
+
+    .add-button:hover {
+      background: var(--green-dark);
+      transform: translateY(-1px);
+    }
+
+    .reservation-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .reservation {
+      display: grid;
+      grid-template-columns: 90px 5px 1fr auto;
+      align-items: center;
+      gap: 17px;
+      padding: 19px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .reservation:last-child { border-bottom: none; }
+
+    .reservation-time {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--green-dark);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reservation-bar {
+      width: 4px;
+      height: 43px;
+      border-radius: 5px;
+      background: var(--green);
+    }
+
+    .reservation-bar.color { background: var(--brown); }
+
+    .customer-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .reservation-detail {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .menu-tag {
+      display: inline-block;
+      background: var(--green-light);
+      color: var(--green-dark);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .menu-tag.color {
+      background: #F5EFE9;
+      color: #96795F;
+    }
+
+    .delete-button {
+      border: none;
+      background: transparent;
+      color: #B7BDB6;
+      font-size: 12px;
+      padding: 8px;
+    }
+
+    .delete-button:hover { color: var(--danger); }
+
+    .empty {
+      padding: 55px 15px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .empty-icon {
+      font-size: 30px;
+      margin-bottom: 12px;
+    }
+
+    .footer {
+      text-align: center;
+      color: #A3AAA2;
+      font-size: 10px;
+      letter-spacing: .12em;
+      margin-top: 30px;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(35, 45, 35, .4);
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .modal {
+      background: white;
+      width: 100%;
+      max-width: 450px;
+      border-radius: 20px;
+      padding: 27px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 23px;
+    }
+
+    .modal-header h2 {
+      font-size: 19px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 24px;
+    }
+
+    .form-group { margin-bottom: 19px; }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 9px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--green);
+    }
+
+    .menu-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .menu-option {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 11px;
+      padding: 13px 8px;
+      color: var(--text);
+    }
+
+    .menu-option.selected {
+      background: var(--green-light);
+      border: 2px solid var(--green);
+      color: var(--green-dark);
+    }
+
+    .menu-option strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .menu-option span {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .availability-note {
+      background: var(--green-light);
+      color: var(--green-dark);
+      padding: 11px;
+      border-radius: 9px;
+      font-size: 12px;
+      margin-top: 9px;
+    }
+
+    .warning {
+      display: none;
+      color: var(--danger);
+      background: #FBF0F0;
+      border-radius: 9px;
+      padding: 11px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .warning.show { display: block; }
+
+    .submit-button {
+      width: 100%;
+      border: none;
+      background: var(--green);
+      color: white;
+      border-radius: 11px;
+      padding: 14px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .submit-button:hover { background: var(--green-dark); }
+
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #425A43;
+      color: white;
+      padding: 13px 22px;
+      border-radius: 30px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+      z-index: 20;
+      white-space: nowrap;
+    }
+
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 650px) {
+      .app { padding: 20px 15px 45px; }
+      header { margin-bottom: 25px; }
+      .brand-name { font-size: 22px; }
+      .header-date { display: none; }
+      .welcome h1 { font-size: 20px; }
+      .summary { gap: 9px; }
+      .summary-card { padding: 15px 12px; }
+      .summary-label { font-size: 10px; }
+      .summary-value { font-size: 24px; }
+      .main-card { padding: 19px 14px; }
+      .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .date-controls { width: 100%; }
+      .date-controls input { flex: 1; min-width: 0; }
+      .reservation {
+        grid-template-columns: 58px 4px 1fr auto;
+        gap: 10px;
+        padding: 17px 2px;
+      }
+      .reservation-time { font-size: 15px; }
+      .customer-name { font-size: 13px; }
+      .menu-tag { padding: 5px 8px; font-size: 10px; }
+      .delete-button { font-size: 11px; padding: 4px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">✂</div>
+      <div>
+        <div class="brand-name">Salon Manager</div>
+        <div class="brand-sub">RESERVATION MANAGEMENT</div>
+      </div>
+    </div>
+    <div class="header-date" id="todayLabel"></div>
+  </header>
+
+  <section class="welcome">
+    <h1>おはようございます。</h1>
+    <p>今日も素敵な一日を。</p>
+  </section>
+
+  <section class="summary">
+    <div class="summary-card">
+      <div class="summary-label">本日の予約</div>
+      <div class="summary-value"><span id="countToday">0</span><span class="summary-unit">件</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">カット</div>
+      <div class="summary-value"><span id="countCut">0</span><span class="summary-unit">件</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">カラー</div>
+      <div class="summary-value"><span id="countColor">0</span><span class="summary-unit">件</span></div>
+    </div>
+  </section>
+
+  <main class="main-card">
+    <div class="section-heading">
+      <h2>Reservation List <span style="font-size:12px;color:#89918A;font-weight:400;">予約一覧</span></h2>
+      <div class="date-controls">
+        <button class="small-button" id="prevDay">‹</button>
+        <input type="date" id="selectedDate">
+        <button class="small-button" id="nextDay">›</button>
+        <button class="small-button" id="todayButton">今日</button>
+      </div>
+    </div>
+
+    <div class="section-heading" style="margin-bottom:12px;">
+      <div id="listDate" style="font-size:13px;color:#89918A;"></div>
+      <button class="add-button" id="openModal">＋ 予約を追加</button>
+    </div>
+
+    <div class="reservation-list" id="reservationList"></div>
+  </main>
+
+  <div class="footer">SALON MANAGER · SIMPLE & BEAUTIFUL</div>
+</div>
+
+<!-- 予約登録モーダル -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>新しい予約</h2>
+      <button class="close-button" id="closeModal">×</button>
+    </div>
+
+    <form id="reservationForm">
+      <div class="form-group">
+        <label for="reserveDate">予約日</label>
+        <input type="date" id="reserveDate" required>
+      </div>
+
+      <div class="form-group">
+        <label>メニュー</label>
+        <div class="menu-options">
+          <button type="button" class="menu-option selected" data-menu="カット">
+            <strong>カット</strong><span>60分</span>
+          </button>
+          <button type="button" class="menu-option" data-menu="カラー">
+            <strong>カラー</strong><span>120分</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="reserveName">お客様のお名前</label>
+        <input type="text" id="reserveName" placeholder="例：山田 花子" required maxlength="30">
+      </div>
+
+      <div class="form-group">
+        <label for="reserveTime">予約開始時間</label>
+        <select id="reserveTime" required></select>
+        <div class="availability-note" id="availabilityNote"></div>
+        <div class="warning" id="warning"></div>
+      </div>
+
+      <button type="submit" class="submit-button">この内容で予約する</button>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const STORAGE_KEY = "salonManagerDemoReservations";
+
+  const openingHour = 9;
+  const closingHour = 19;
+  const slotMinutes = 30;
+
+  const today = new Date();
+  const dateString = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const formatDate = value => {
+    const d = new Date(value + "T00:00:00");
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  };
+
+  const formatTime = minutes =>
+    `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+
+  const duration = menu => menu === "カラー" ? 120 : 60;
+
+  let reservations = loadReservations();
+  let selectedMenu = "カット";
+
+  function loadReservations() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("予約データを読み込めませんでした", e);
+    }
+
+    // デモ用の架空データ
+    const date = dateString(today);
+    return [
+      { id: "demo1", date, time: "09:00", name: "山田 様", menu: "カット" },
+      { id: "demo2", date, time: "11:00", name: "佐藤 様", menu: "カラー" },
+      { id: "demo3", date, time: "14:00", name: "鈴木 様", menu: "カット" },
+      { id: "demo4", date, time: "16:00", name: "田中 様", menu: "カラー" }
+    ];
+  }
+
+  function saveReservations() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+  }
+
+  const selectedDate = document.getElementById("selectedDate");
+  const reserveDate = document.getElementById("reserveDate");
+  const reserveTime = document.getElementById("reserveTime");
+  const warning = document.getElementById("warning");
+  const availabilityNote = document.getElementById("availabilityNote");
+  const modalBackdrop = document.getElementById("modalBackdrop");
+
+  selectedDate.value = dateString(today);
+
+  function getReservations(date) {
+    return reservations
+      .filter(r => r.date === date)
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }
+
+  function timeToMinutes(time) {
+    const [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function isAvailable(date, start, length, ignoreId = null) {
+    const startMin = timeToMinutes(start);
+    const endMin = startMin + length;
+
+    if (startMin < openingHour * 60 || endMin > closingHour * 60) {
+      return false;
+    }
+
+    return !reservations.some(r => {
+      if (r.date !== date || r.id === ignoreId) return false;
+
+      const otherStart = timeToMinutes(r.time);
+      const otherEnd = otherStart + duration(r.menu);
+
+      return startMin < otherEnd && endMin > otherStart;
+    });
+  }
+
+  function getAvailableTimes(date, menu) {
+    const length = duration(menu);
+    const result = [];
+
+    for (
+      let min = openingHour * 60;
+      min + length <= closingHour * 60;
+      min += slotMinutes
+    ) {
+      const time = formatTime(min);
+      if (isAvailable(date, time, length)) result.push(time);
+    }
+
+    return result;
+  }
+
+  function render() {
+    const date = selectedDate.value;
+    const list = getReservations(date);
+
+    document.getElementById("listDate").textContent = formatDate(date);
+    document.getElementById("countToday").textContent = list.length;
+    document.getElementById("countCut").textContent =
+      list.filter(r => r.menu === "カット").length;
+    document.getElementById("countColor").textContent =
+      list.filter(r => r.menu === "カラー").length;
+
+    const container = document.getElementById("reservationList");
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">✂</div>
+          この日の予約はありません。
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = list.map(r => `
+      <div class="reservation">
+        <div class="reservation-time">${escapeHTML(r.time)}</div>
+        <div class="reservation-bar ${r.menu === "カラー" ? "color" : ""}"></div>
+        <div>
+          <div class="customer-name">${escapeHTML(r.name)}</div>
+          <div class="reservation-detail">${escapeHTML(r.menu)} ・ ${duration(r.menu)}分</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="menu-tag ${r.menu === "カラー" ? "color" : ""}">
+            ${escapeHTML(r.menu)}
+          </span>
+          <button class="delete-button" data-delete="${escapeHTML(r.id)}">削除</button>
+        </div>
+      </div>
+    `).join("");
+
+    container.querySelectorAll("[data-delete]").forEach(button => {
+      button.addEventListener("click", () => deleteReservation(button.dataset.delete));
+    });
+  }
+
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]);
+  }
+
+  function updateTimeOptions() {
+    const date = reserveDate.value;
+    const times = getAvailableTimes(date, selectedMenu);
+
+    reserveTime.innerHTML = "";
+
+    if (times.length === 0) {
+      reserveTime.innerHTML = '<option value="">空き時間がありません</option>';
+      availabilityNote.textContent = "この日は予約可能な時間がありません。";
+      return;
+    }
+
+    times.forEach(time => {
+      const option = document.createElement("option");
+      option.value = time;
+      option.textContent = `${time} ～ ${formatTime(timeToMinutes(time) + duration(selectedMenu))}`;
+      reserveTime.appendChild(option);
+    });
+
+    availabilityNote.textContent =
+      `現在 ${times.length} 枠の空きがあります。営業時間 9:00～19:00`;
+  }
+
+  function openModal() {
+    reserveDate.value = selectedDate.value;
+    document.getElementById("reserveName").value = "";
+    warning.classList.remove("show");
+    selectedMenu = "カット";
+
+    document.querySelectorAll(".menu-option").forEach(button => {
+      button.classList.toggle("selected", button.dataset.menu === selectedMenu);
+    });
+
+    updateTimeOptions();
+    modalBackdrop.classList.add("show");
+  }
+
+  function closeModal() {
+    modalBackdrop.classList.remove("show");
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2400);
+  }
+
+  function deleteReservation(id) {
+    if (!confirm("この予約を削除しますか？")) return;
+    reservations = reservations.filter(r => r.id !== id);
+    saveReservations();
+    render();
+    showToast("予約を削除しました");
+  }
+
+  document.getElementById("openModal").addEventListener("click", openModal);
+  document.getElementById("closeModal").addEventListener("click", closeModal);
+
+  modalBackdrop.addEventListener("click", e => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+
+  selectedDate.addEventListener("change", render);
+
+  document.getElementById("todayButton").addEventListener("click", () => {
+    selectedDate.value = dateString(today);
+    render();
+  });
+
+  function shiftDate(days) {
+    const d = new Date(selectedDate.value + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    selectedDate.value = dateString(d);
+    render();
+  }
+
+  document.getElementById("prevDay").addEventListener("click", () => shiftDate(-1));
+  document.getElementById("nextDay").addEventListener("click", () => shiftDate(1));
+
+  document.querySelectorAll(".menu-option").forEach(button => {
+    button.addEventListener("click", () => {
+      selectedMenu = button.dataset.menu;
+      document.querySelectorAll(".menu-option").forEach(b =>
+        b.classList.toggle("selected", b === button)
+      );
+      updateTimeOptions();
+      warning.classList.remove("show");
+    });
+  });
+
+  reserveDate.addEventListener("change", updateTimeOptions);
+
+  document.getElementById("reservationForm").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const date = reserveDate.value;
+    const time = reserveTime.value;
+    const name = document.getElementById("reserveName").value.trim();
+
+    if (!date || !time || !name) {
+      warning.textContent = "入力内容を確認してください。";
+      warning.classList.add("show");
+      return;
+    }
+
+    if (!isAvailable(date, time, duration(selectedMenu))) {
+      warning.textContent = "⚠️ この時間はすでに埋まっています。別の時間を選択してください。";
+      warning.classList.add("show");
+      updateTimeOptions();
+      return;
+    }
+
+    reservations.push({
+      id: Date.now().toString(),
+      date,
+      time,
+      name,
+      menu: selectedMenu
+    });
+
+    saveReservations();
+    selectedDate.value = date;
+    render();
+    closeModal();
+    showToast("予約を登録しました");
+  });
+
+  document.getElementById("todayLabel").textContent =
+    `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
+
+  render();
+</script>
+</body>
+</html>
