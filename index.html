@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#8FBC8F">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>Salon Manager</title>
   <style>
     
@@ -855,7 +857,19 @@
   document.getElementById("todayLabel").textContent =
     `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
 
-  render();
+    render();
 </script>
+
+<!-- PWA Service Worker -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js")
+        .then(() => console.log("PWA ready"))
+        .catch(error => console.error("PWA error:", error));
+    });
+  }
+</script>
+
 </body>
 </html>
