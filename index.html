@@ -601,6 +601,7 @@
     .legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
     .legend-dot.color { background: var(--brown); }
     .legend-dot.availability { background: #A8C5A2; }
+    .legend-dot.closed { background: #C9A997; }
     .calendar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .availability-panel {
       display: none;
@@ -670,6 +671,47 @@
       .menu-tag { padding: 5px 8px; font-size: 10px; }
       .delete-button { font-size: 11px; padding: 4px; }
     }
+
+    .header-tools { display:flex; align-items:center; gap:14px; }
+    .settings-toggle { white-space:nowrap; }
+    .settings-view { padding: 4px 0 30px; }
+    .settings-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin: 8px 0 22px; }
+    .settings-eyebrow { color:var(--green-dark); font-size:10px; letter-spacing:.18em; font-weight:700; margin-bottom:6px; }
+    .settings-heading h1 { margin:0 0 6px; font-size:24px; font-weight:600; }
+    .settings-heading p,.settings-description { color:var(--muted); font-size:12px; margin:0; line-height:1.7; }
+    .settings-card { background:#fff; border-radius:17px; padding:22px 24px; margin-bottom:15px; box-shadow:var(--shadow); }
+    .settings-card h2 { margin:0 0 6px; font-size:16px; color:var(--green-dark); }
+    .settings-two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+    .settings-field label { display:block; font-size:11px; color:var(--muted); margin-bottom:7px; }
+    .settings-field input { width:100%; min-height:43px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--text); }
+    .weekday-options { display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
+    .weekday-options label { display:flex; align-items:center; justify-content:center; gap:6px; min-width:58px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:13px; cursor:pointer; }
+    .weekday-options input { accent-color:var(--green-dark); }
+    .closed-date-entry { display:flex; gap:9px; margin-top:15px; }
+    .closed-date-entry input { flex:1; min-width:0; padding:10px 12px; border:1px solid var(--line); border-radius:9px; }
+    .closed-date-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
+    .closed-date-chip { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:9px; background:#F7F1EE; color:#866B5A; font-size:12px; }
+    .closed-date-chip button { border:0; background:transparent; color:#A77E70; font-size:16px; padding:0 2px; }
+    .settings-muted { color:var(--muted); font-size:12px; }
+    .menu-setting-row { margin-top:17px; padding-top:15px; border-top:1px solid var(--line); }
+    .menu-setting-title { color:var(--text); font-size:13px; font-weight:700; }
+    .menu-setting-row .settings-two-col { margin-top:10px; }
+    .settings-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .settings-footnote { color:var(--muted); font-size:10px; text-align:right; margin-top:14px; }
+    .calendar-day.closed-day { background:#F6F0ED; border-color:#E9DCD5; }
+    .calendar-day.closed-day .day-number { color:#A77E70; }
+    .closed-marker { display:inline-block; color:#967968; background:#F0E4DC; border-radius:10px; padding:2px 5px; font-size:8px; line-height:1.2; font-weight:700; }
+    @media (max-width:650px) {
+      .header-tools { gap:7px; }
+      .settings-toggle { padding:8px 10px; font-size:11px; }
+      .settings-heading { align-items:flex-start; }
+      .settings-heading h1 { font-size:21px; }
+      .settings-card { padding:18px 15px; }
+      .weekday-options { gap:6px; }
+      .weekday-options label { min-width:42px; padding:9px 7px; }
+      .settings-footnote { text-align:left; }
+    }
+
   </style>
 </head>
 <body>
@@ -683,9 +725,87 @@
         <div class="brand-sub">RESERVATION MANAGEMENT</div>
       </div>
     </div>
-    <div class="header-date" id="todayLabel"></div>
+    <div class="header-tools">
+      <div class="header-date" id="todayLabel"></div>
+      <button type="button" class="small-button settings-toggle" id="settingsButton">⚙ 設定</button>
+    </div>
   </header>
 
+  <section class="settings-view" id="settingsView" hidden>
+    <div class="settings-heading">
+      <div>
+        <div class="settings-eyebrow">SALON SETTINGS</div>
+        <h1>店舗設定</h1>
+        <p>営業時間や休業日、メニュー内容を設定できます。</p>
+      </div>
+      <button type="button" class="small-button" id="closeSettings">← 戻る</button>
+    </div>
+    <form id="settingsForm">
+      <section class="settings-card">
+        <h2>営業時間</h2>
+        <p class="settings-description">通常営業する時間帯を設定します。</p>
+        <div class="settings-two-col">
+          <div class="settings-field"><label for="settingOpen">営業開始</label><input type="time" id="settingOpen" required></div>
+          <div class="settings-field"><label for="settingClose">営業終了</label><input type="time" id="settingClose" required></div>
+        </div>
+      </section>
+      <section class="settings-card">
+        <h2>定休日</h2>
+        <p class="settings-description">毎週お休みにする曜日を選択してください。</p>
+        <div class="weekday-options">
+          <label><input type="checkbox" data-closed-day="0"> 日</label>
+          <label><input type="checkbox" data-closed-day="1"> 月</label>
+          <label><input type="checkbox" data-closed-day="2"> 火</label>
+          <label><input type="checkbox" data-closed-day="3"> 水</label>
+          <label><input type="checkbox" data-closed-day="4"> 木</label>
+          <label><input type="checkbox" data-closed-day="5"> 金</label>
+          <label><input type="checkbox" data-closed-day="6"> 土</label>
+        </div>
+      </section>
+      <section class="settings-card">
+        <h2>臨時休業日</h2>
+        <p class="settings-description">祝日や研修日など、特定の日を予約不可にできます。</p>
+        <div class="closed-date-entry">
+          <input type="date" id="newClosedDate" aria-label="臨時休業日">
+          <button type="button" class="small-button" id="addClosedDate">＋ 追加</button>
+        </div>
+        <div class="closed-date-list" id="closedDateList"><span class="settings-muted">臨時休業日は登録されていません。</span></div>
+      </section>
+      <section class="settings-card">
+        <h2>休憩時間</h2>
+        <p class="settings-description">休憩を設定すると、その時間に重なる予約枠は表示されません。休憩がない場合は空欄のままにしてください。</p>
+        <div class="settings-two-col">
+          <div class="settings-field"><label for="settingBreakStart">休憩開始</label><input type="time" id="settingBreakStart"></div>
+          <div class="settings-field"><label for="settingBreakEnd">休憩終了</label><input type="time" id="settingBreakEnd"></div>
+        </div>
+      </section>
+      <section class="settings-card">
+        <h2>メニュー設定</h2>
+        <p class="settings-description">メニューごとの所要時間と料金を設定します。</p>
+        <div class="menu-setting-row">
+          <div class="menu-setting-title">カット</div>
+          <div class="settings-two-col">
+            <div class="settings-field"><label for="cutDuration">所要時間（分）</label><input type="number" id="cutDuration" min="15" max="480" step="15" required></div>
+            <div class="settings-field"><label for="cutPrice">料金（円）</label><input type="number" id="cutPrice" min="0" max="1000000" step="100" required></div>
+          </div>
+        </div>
+        <div class="menu-setting-row">
+          <div class="menu-setting-title">カラー</div>
+          <div class="settings-two-col">
+            <div class="settings-field"><label for="colorDuration">所要時間（分）</label><input type="number" id="colorDuration" min="15" max="480" step="15" required></div>
+            <div class="settings-field"><label for="colorPrice">料金（円）</label><input type="number" id="colorPrice" min="0" max="1000000" step="100" required></div>
+          </div>
+        </div>
+      </section>
+      <div class="settings-actions">
+        <button type="button" class="small-button" id="cancelSettings">キャンセル</button>
+        <button type="submit" class="add-button">設定を保存</button>
+      </div>
+    </form>
+    <p class="settings-footnote">※現在はデモ用の設定です。実店舗の営業ルール・料金は未確認です。</p>
+  </section>
+
+  <div id="dashboardView">
   <section class="welcome">
     <h1>おはようございます。</h1>
     <p>今日も素敵な一日を。</p>
@@ -730,6 +850,7 @@
       <span><i class="legend-dot"></i>カット</span>
       <span><i class="legend-dot color"></i>カラー</span>
       <span><i class="legend-dot availability"></i>空き時間あり</span>
+      <span><i class="legend-dot closed"></i>休業日</span>
       <span>日付を選ぶと下に予約一覧を表示</span>
     </div>
   </section>
@@ -782,7 +903,7 @@
   <section class="monthly-summary">
     <div class="monthly-summary-heading">
       <h2>Monthly Overview <span style="font-size:12px;color:#89918A;font-weight:400;">月間集計</span></h2>
-      <span class="demo-price-note">※料金はデモ用の仮設定です</span>
+      <span class="demo-price-note">※料金は設定画面で変更できます（初期値はデモ用）</span>
     </div>
     <div class="monthly-total">
       <div class="monthly-total-label" id="monthlySalesLabel">今月の売上見込み</div>
@@ -804,6 +925,7 @@
   </section>
 
   <div class="footer">SALON MANAGER · SIMPLE & BEAUTIFUL</div>
+  </div>
 </div>
 
 <!-- 予約登録モーダル -->
@@ -824,10 +946,10 @@
         <label>メニュー</label>
         <div class="menu-options">
           <button type="button" class="menu-option selected" data-menu="カット">
-            <strong>カット</strong><span>60分</span>
+            <strong>カット</strong><span>60分 ・ 4,500円</span>
           </button>
           <button type="button" class="menu-option" data-menu="カラー">
-            <strong>カラー</strong><span>120分</span>
+            <strong>カラー</strong><span>120分 ・ 7,000円</span>
           </button>
         </div>
       </div>
@@ -854,9 +976,15 @@
 <script>
   const STORAGE_KEY = "salonManagerDemoReservations";
 
-  const openingHour = 9;
-  const closingHour = 19;
   const slotMinutes = 30;
+  const SETTINGS_STORAGE_KEY = "salonManagerDemoSettings";
+  const DEFAULT_SETTINGS = {
+    openingTime: "09:00", closingTime: "19:00", closedDays: [], closedDates: [],
+    breakStart: "", breakEnd: "",
+    menus: { "カット": { duration: 60, price: 4500 }, "カラー": { duration: 120, price: 7000 } }
+  };
+  let settings = loadSettings();
+  let draftClosedDates = [];
 
   const today = new Date();
   const dateString = d => {
@@ -874,14 +1002,37 @@
   const formatTime = minutes =>
     `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
-  const duration = menu => menu === "カラー" ? 120 : 60;
-
-  // デモ用の仮料金。実際の店舗料金が分かったら設定画面で変更できるようにする。
-  const MENU_PRICES = { "カット": 4500, "カラー": 7000 };
+  const duration = menu => Number(settings.menus[menu]?.duration || DEFAULT_SETTINGS.menus[menu]?.duration || 60);
+  const menuPrice = menu => Number(settings.menus[menu]?.price || 0);
   const yen = value => Math.round(value).toLocaleString("ja-JP");
 
   let reservations = loadReservations();
   let selectedMenu = "カット";
+
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || "null");
+      if (saved) return {
+        ...DEFAULT_SETTINGS, ...saved,
+        menus: {
+          "カット": { ...DEFAULT_SETTINGS.menus["カット"], ...(saved.menus?.["カット"] || {}) },
+          "カラー": { ...DEFAULT_SETTINGS.menus["カラー"], ...(saved.menus?.["カラー"] || {}) }
+        },
+        closedDays: Array.isArray(saved.closedDays) ? saved.closedDays : [],
+        closedDates: Array.isArray(saved.closedDates) ? saved.closedDates : []
+      };
+    } catch (e) { console.error("設定を読み込めませんでした", e); }
+    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  }
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  }
+
+  function isClosedDate(date) {
+    const d = new Date(date + "T00:00:00");
+    return settings.closedDays.includes(d.getDay()) || settings.closedDates.includes(date);
+  }
 
   function loadReservations() {
     try {
@@ -927,19 +1078,23 @@
   }
 
   function isAvailable(date, start, length, ignoreId = null) {
+    if (isClosedDate(date)) return false;
     const startMin = timeToMinutes(start);
     const endMin = startMin + length;
+    const openingMin = timeToMinutes(settings.openingTime);
+    const closingMin = timeToMinutes(settings.closingTime);
+    if (startMin < openingMin || endMin > closingMin) return false;
 
-    if (startMin < openingHour * 60 || endMin > closingHour * 60) {
-      return false;
+    if (settings.breakStart && settings.breakEnd) {
+      const breakStart = timeToMinutes(settings.breakStart);
+      const breakEnd = timeToMinutes(settings.breakEnd);
+      if (startMin < breakEnd && endMin > breakStart) return false;
     }
 
     return !reservations.some(r => {
       if (r.date !== date || r.id === ignoreId) return false;
-
       const otherStart = timeToMinutes(r.time);
       const otherEnd = otherStart + duration(r.menu);
-
       return startMin < otherEnd && endMin > otherStart;
     });
   }
@@ -947,13 +1102,14 @@
   function getAvailableTimes(date, menu) {
     const length = duration(menu);
     const result = [];
+    if (isClosedDate(date)) return result;
     const now = new Date();
     const isToday = date === dateString(now);
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     for (
-      let min = openingHour * 60;
-      min + length <= closingHour * 60;
+      let min = timeToMinutes(settings.openingTime);
+      min + length <= timeToMinutes(settings.closingTime);
       min += slotMinutes
     ) {
       // 今日については、すでに過ぎた開始時刻を空き枠に含めない
@@ -973,16 +1129,16 @@
     const monthlyReservations = reservations.filter(r => r.date.startsWith(monthKey));
     const cutCount = monthlyReservations.filter(r => r.menu === "カット").length;
     const colorCount = monthlyReservations.filter(r => r.menu === "カラー").length;
-    const cutSales = cutCount * MENU_PRICES["カット"];
-    const colorSales = colorCount * MENU_PRICES["カラー"];
+    const cutSales = cutCount * menuPrice("カット");
+    const colorSales = colorCount * menuPrice("カラー");
     const totalSales = cutSales + colorSales;
 
     document.getElementById("monthlySalesLabel").textContent = `${year}年${Number(month)}月の売上見込み`;
     document.getElementById("monthlySalesTotal").textContent = yen(totalSales);
     document.getElementById("monthlyCutCount").textContent = cutCount;
     document.getElementById("monthlyColorCount").textContent = colorCount;
-    document.getElementById("monthlyCutPrice").textContent = yen(MENU_PRICES["カット"]);
-    document.getElementById("monthlyColorPrice").textContent = yen(MENU_PRICES["カラー"]);
+    document.getElementById("monthlyCutPrice").textContent = yen(menuPrice("カット"));
+    document.getElementById("monthlyColorPrice").textContent = yen(menuPrice("カラー"));
     document.getElementById("monthlyCutSales").textContent = yen(cutSales);
     document.getElementById("monthlyColorSales").textContent = yen(colorSales);
     document.getElementById("monthlyReservationCount").textContent = monthlyReservations.length;
@@ -1009,7 +1165,8 @@
       const cutCount = dayReservations.filter(r => r.menu === "カット").length;
       const colorCount = dayReservations.filter(r => r.menu === "カラー").length;
       // 過去日を除き、カットまたはカラーのどちらかが入る空き枠があれば「空きあり」
-      const hasAvailability = value >= todayValue && (
+      const closed = isClosedDate(value);
+      const hasAvailability = !closed && value >= todayValue && (
         getAvailableTimes(value, "カット").length > 0 ||
         getAvailableTimes(value, "カラー").length > 0
       );
@@ -1018,7 +1175,8 @@
         d.getMonth() !== month ? "other-month" : "",
         value === selected ? "selected" : "",
         value === todayValue ? "today" : "",
-        hasAvailability ? "has-availability" : ""
+        hasAvailability ? "has-availability" : "",
+        closed ? "closed-day" : ""
       ].filter(Boolean).join(" ");
       const menuCounts = `
         ${cutCount ? `<span class="day-menu-count cut">カット ${cutCount}</span>` : ""}
@@ -1026,7 +1184,7 @@
       `;
       cells += `<button type="button" class="${classes}" data-calendar-date="${value}">
         <span class="day-number">${d.getDate()}</span>
-        ${hasAvailability ? '<span class="availability-marker">空きあり</span>' : ""}
+        ${closed ? '<span class="closed-marker">休業日</span>' : hasAvailability ? '<span class="availability-marker">空きあり</span>' : ""}
         <span class="day-menu-counts">${menuCounts}</span>
       </button>`;
     }
@@ -1116,7 +1274,17 @@
     });
 
     availabilityNote.textContent =
-      `現在 ${times.length} 枠の空きがあります。営業時間 9:00～19:00`;
+      `現在 ${times.length} 枠の空きがあります。営業時間 ${settings.openingTime}～${settings.closingTime}`;
+  }
+
+  function syncMenuLabels() {
+    document.querySelectorAll(".menu-option").forEach(button => {
+      const menu = button.dataset.menu;
+      button.querySelector("span").textContent = `${duration(menu)}分 ・ ${yen(menuPrice(menu))}円`;
+    });
+    searchMenu.querySelectorAll("option").forEach(option => {
+      option.textContent = `${option.value}（${duration(option.value)}分）`;
+    });
   }
 
   function openModal(date = selectedDate.value, menu = "カット", presetTime = "") {
@@ -1297,6 +1465,115 @@
     closeModal();
     showToast("予約を登録しました");
   });
+
+
+  // 設定画面
+  const settingsView = document.getElementById("settingsView");
+  const dashboardView = document.getElementById("dashboardView");
+  const settingsButton = document.getElementById("settingsButton");
+
+  function renderClosedDateList() {
+    const list = document.getElementById("closedDateList");
+    const dates = [...draftClosedDates].sort();
+    if (!dates.length) {
+      list.innerHTML = '<span class="settings-muted">臨時休業日は登録されていません。</span>';
+      return;
+    }
+    list.innerHTML = dates.map(date => `<span class="closed-date-chip">${formatDate(date)}<button type="button" data-remove-closed="${date}" aria-label="削除">×</button></span>`).join("");
+    list.querySelectorAll("[data-remove-closed]").forEach(button => {
+      button.addEventListener("click", () => {
+        draftClosedDates = draftClosedDates.filter(date => date !== button.dataset.removeClosed);
+        renderClosedDateList();
+      });
+    });
+  }
+
+  function populateSettingsForm() {
+    document.getElementById("settingOpen").value = settings.openingTime;
+    document.getElementById("settingClose").value = settings.closingTime;
+    document.getElementById("settingBreakStart").value = settings.breakStart || "";
+    document.getElementById("settingBreakEnd").value = settings.breakEnd || "";
+    document.getElementById("cutDuration").value = settings.menus["カット"].duration;
+    document.getElementById("cutPrice").value = settings.menus["カット"].price;
+    document.getElementById("colorDuration").value = settings.menus["カラー"].duration;
+    document.getElementById("colorPrice").value = settings.menus["カラー"].price;
+    document.querySelectorAll("[data-closed-day]").forEach(input => {
+      input.checked = settings.closedDays.includes(Number(input.dataset.closedDay));
+    });
+    draftClosedDates = [...settings.closedDates];
+    document.getElementById("newClosedDate").value = "";
+    renderClosedDateList();
+  }
+
+  function openSettings() {
+    populateSettingsForm();
+    dashboardView.hidden = true;
+    settingsView.hidden = false;
+    settingsButton.textContent = "← 戻る";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeSettingsView() {
+    settingsView.hidden = true;
+    dashboardView.hidden = false;
+    settingsButton.textContent = "⚙ 設定";
+    render();
+  }
+
+  settingsButton.addEventListener("click", () => {
+    if (settingsView.hidden) openSettings();
+    else closeSettingsView();
+  });
+  document.getElementById("closeSettings").addEventListener("click", closeSettingsView);
+  document.getElementById("cancelSettings").addEventListener("click", closeSettingsView);
+
+  document.getElementById("addClosedDate").addEventListener("click", () => {
+    const input = document.getElementById("newClosedDate");
+    if (!input.value) { showToast("日付を選択してください"); return; }
+    if (!draftClosedDates.includes(input.value)) draftClosedDates.push(input.value);
+    input.value = "";
+    renderClosedDateList();
+  });
+
+  document.getElementById("settingsForm").addEventListener("submit", event => {
+    event.preventDefault();
+    const openingTime = document.getElementById("settingOpen").value;
+    const closingTime = document.getElementById("settingClose").value;
+    const breakStart = document.getElementById("settingBreakStart").value;
+    const breakEnd = document.getElementById("settingBreakEnd").value;
+    const cutDuration = Number(document.getElementById("cutDuration").value);
+    const colorDuration = Number(document.getElementById("colorDuration").value);
+    const cutPrice = Number(document.getElementById("cutPrice").value);
+    const colorPrice = Number(document.getElementById("colorPrice").value);
+
+    if (!openingTime || !closingTime || timeToMinutes(openingTime) >= timeToMinutes(closingTime)) {
+      alert("営業時間は、開始時刻が終了時刻より前になるように設定してください。"); return;
+    }
+    if ((breakStart && !breakEnd) || (!breakStart && breakEnd) ||
+        (breakStart && (timeToMinutes(breakStart) >= timeToMinutes(breakEnd) || timeToMinutes(breakStart) < timeToMinutes(openingTime) || timeToMinutes(breakEnd) > timeToMinutes(closingTime)))) {
+      alert("休憩時間は営業時間内で、開始・終了の両方を正しく入力してください。"); return;
+    }
+    if (![cutDuration, colorDuration].every(value => Number.isInteger(value) && value >= 15 && value <= 480 && value % 15 === 0) ||
+        ![cutPrice, colorPrice].every(value => Number.isFinite(value) && value >= 0 && value <= 1000000)) {
+      alert("メニューの所要時間は15分単位（15～480分）、料金は0～1,000,000円で入力してください。"); return;
+    }
+
+    settings = {
+      openingTime, closingTime, breakStart, breakEnd,
+      closedDays: [...document.querySelectorAll("[data-closed-day]:checked")].map(input => Number(input.dataset.closedDay)),
+      closedDates: [...new Set(draftClosedDates)].sort(),
+      menus: {
+        "カット": { duration: cutDuration, price: cutPrice },
+        "カラー": { duration: colorDuration, price: colorPrice }
+      }
+    };
+    saveSettings();
+    syncMenuLabels();
+    closeSettingsView();
+    showToast("店舗設定を保存しました");
+  });
+
+  syncMenuLabels();
 
   document.getElementById("todayLabel").textContent =
     `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
