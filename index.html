@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -438,6 +439,81 @@
 
     .toast.show { opacity: 1; }
 
+
+    /* Monthly calendar */
+    .calendar-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow);
+    }
+    .calendar-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .calendar-month {
+      color: var(--green-dark);
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .calendar-nav { display: flex; gap: 7px; }
+    .calendar-weekdays, .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .calendar-weekday {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 7px 0;
+    }
+    .calendar-weekday:first-child { color: #C87575; }
+    .calendar-weekday:last-child { color: #7895B5; }
+    .calendar-day {
+      min-width: 0;
+      min-height: 75px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      background: #F8FAF7;
+      color: var(--text);
+      padding: 8px 5px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .calendar-day:hover { border-color: var(--green); }
+    .calendar-day.other-month { opacity: .35; background: white; }
+    .calendar-day.selected { background: var(--green-light); border-color: var(--green); }
+    .calendar-day.today .day-number { color: var(--green-dark); font-weight: 800; }
+    .day-number { font-size: 13px; font-weight: 500; }
+    .day-count { font-size: 10px; color: var(--green-dark); white-space: nowrap; }
+    .day-dots { display: flex; gap: 3px; min-height: 5px; }
+    .day-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+    .day-dot.color { background: var(--brown); }
+    .calendar-legend {
+      display: flex; gap: 15px; flex-wrap: wrap;
+      color: var(--muted); font-size: 10px; margin-top: 13px;
+    }
+    .calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .legend-dot.color { background: var(--brown); }
+    @media (max-width: 650px) {
+      .calendar-card { padding: 17px 11px; }
+      .calendar-day { min-height: 61px; padding: 6px 2px; gap: 4px; }
+      .day-number { font-size: 12px; }
+      .day-count { font-size: 9px; }
+      .calendar-weekdays, .calendar-grid { gap: 3px; }
+      .calendar-month { font-size: 18px; }
+    }
+
     @media (max-width: 650px) {
       .app { padding: 20px 15px 45px; }
       header { margin-bottom: 25px; }
@@ -498,6 +574,30 @@
     <div class="summary-card">
       <div class="summary-label">カラー</div>
       <div class="summary-value"><span id="countColor">0</span><span class="summary-unit">件</span></div>
+    </div>
+  </section>
+
+
+  <section class="calendar-card">
+    <div class="calendar-toolbar">
+      <div class="calendar-month" id="calendarMonth">2026年11月</div>
+      <div class="calendar-nav">
+        <button class="small-button" id="prevMonth" aria-label="前の月">‹</button>
+        <button class="small-button" id="calendarToday">今月</button>
+        <button class="small-button" id="nextMonth" aria-label="次の月">›</button>
+      </div>
+    </div>
+    <div class="calendar-weekdays">
+      <div class="calendar-weekday">日</div><div class="calendar-weekday">月</div>
+      <div class="calendar-weekday">火</div><div class="calendar-weekday">水</div>
+      <div class="calendar-weekday">木</div><div class="calendar-weekday">金</div>
+      <div class="calendar-weekday">土</div>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+    <div class="calendar-legend">
+      <span><i class="legend-dot"></i>カット</span>
+      <span><i class="legend-dot color"></i>カラー</span>
+      <span>日付を選ぶと下に予約一覧を表示</span>
     </div>
   </section>
 
@@ -626,6 +726,7 @@
   const modalBackdrop = document.getElementById("modalBackdrop");
 
   selectedDate.value = dateString(today);
+  let calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
   function getReservations(date) {
     return reservations
@@ -672,7 +773,53 @@
     return result;
   }
 
+
+  function renderCalendar() {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    document.getElementById("calendarMonth").textContent = `${year}年${month + 1}月`;
+
+    const firstDay = new Date(year, month, 1);
+    const start = new Date(year, month, 1 - firstDay.getDay());
+    const grid = document.getElementById("calendarGrid");
+    const selected = selectedDate.value;
+    const todayValue = dateString(today);
+    let cells = "";
+
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const value = dateString(d);
+      const dayReservations = getReservations(value);
+      const cutCount = dayReservations.filter(r => r.menu === "カット").length;
+      const colorCount = dayReservations.filter(r => r.menu === "カラー").length;
+      const classes = [
+        "calendar-day",
+        d.getMonth() !== month ? "other-month" : "",
+        value === selected ? "selected" : "",
+        value === todayValue ? "today" : ""
+      ].filter(Boolean).join(" ");
+      const dots = `${cutCount ? '<i class="day-dot"></i>' : ''}${colorCount ? '<i class="day-dot color"></i>' : ''}`;
+      const countText = dayReservations.length ? `${dayReservations.length}件` : "";
+      cells += `<button type="button" class="${classes}" data-calendar-date="${value}">
+        <span class="day-number">${d.getDate()}</span>
+        <span class="day-dots">${dots}</span>
+        <span class="day-count">${countText}</span>
+      </button>`;
+    }
+    grid.innerHTML = cells;
+    grid.querySelectorAll("[data-calendar-date]").forEach(button => {
+      button.addEventListener("click", () => {
+        selectedDate.value = button.dataset.calendarDate;
+        calendarMonth = new Date(selectedDate.value + "T00:00:00");
+        calendarMonth.setDate(1);
+        render();
+      });
+    });
+  }
+
   function render() {
+    renderCalendar();
     const date = selectedDate.value;
     const list = getReservations(date);
 
@@ -789,10 +936,34 @@
     if (e.target === modalBackdrop) closeModal();
   });
 
-  selectedDate.addEventListener("change", render);
+  selectedDate.addEventListener("change", () => {
+    if (selectedDate.value) {
+      calendarMonth = new Date(selectedDate.value + "T00:00:00");
+      calendarMonth.setDate(1);
+    }
+    render();
+  });
+
+
+  document.getElementById("prevMonth").addEventListener("click", () => {
+    calendarMonth.setMonth(calendarMonth.getMonth() - 1);
+    renderCalendar();
+  });
+
+  document.getElementById("nextMonth").addEventListener("click", () => {
+    calendarMonth.setMonth(calendarMonth.getMonth() + 1);
+    renderCalendar();
+  });
+
+  document.getElementById("calendarToday").addEventListener("click", () => {
+    calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    selectedDate.value = dateString(today);
+    render();
+  });
 
   document.getElementById("todayButton").addEventListener("click", () => {
     selectedDate.value = dateString(today);
+    calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     render();
   });
 
@@ -800,6 +971,7 @@
     const d = new Date(selectedDate.value + "T00:00:00");
     d.setDate(d.getDate() + days);
     selectedDate.value = dateString(d);
+    calendarMonth = new Date(d.getFullYear(), d.getMonth(), 1);
     render();
   }
 
@@ -849,6 +1021,8 @@
 
     saveReservations();
     selectedDate.value = date;
+    calendarMonth = new Date(date + "T00:00:00");
+    calendarMonth.setDate(1);
     render();
     closeModal();
     showToast("予約を登録しました");
