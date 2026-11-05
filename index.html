@@ -522,6 +522,38 @@
     .calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
     .legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
     .legend-dot.color { background: var(--brown); }
+    .calendar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .availability-panel {
+      display: none;
+      background: #FFFFFF;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      margin: -8px 0 22px;
+      box-shadow: var(--shadow);
+    }
+    .availability-panel.show { display: block; }
+    .availability-heading { font-size: 16px; font-weight: 600; color: var(--green-dark); margin: 0 0 15px; }
+    .availability-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+    .availability-controls label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .availability-controls input, .availability-controls select {
+      width: 100%; padding: 11px; border: 1px solid var(--line); border-radius: 9px;
+      background: white; color: var(--text); min-height: 42px;
+    }
+    .availability-results { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .available-slot {
+      border: 1px solid var(--green); background: var(--green-light); color: var(--green-dark);
+      border-radius: 9px; padding: 10px 14px; font-weight: 600; font-size: 13px;
+    }
+    .available-slot:hover { background: var(--green); color: white; }
+    .availability-empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+    @media (max-width: 650px) {
+      .availability-panel { padding: 17px 13px; }
+      .availability-controls { grid-template-columns: 1fr 1fr; }
+      .availability-controls .search-action { grid-column: 1 / -1; }
+      .availability-controls .search-action button { width: 100%; }
+    }
+
     @media (max-width: 650px) {
       .calendar-card { padding: 17px 11px; }
       .calendar-day { min-height: 61px; padding: 6px 2px; gap: 4px; }
@@ -598,10 +630,13 @@
   <section class="calendar-card">
     <div class="calendar-toolbar">
       <div class="calendar-month" id="calendarMonth">2026年11月</div>
-      <div class="calendar-nav">
-        <button class="small-button" id="prevMonth" aria-label="前の月">‹</button>
-        <button class="small-button" id="calendarToday">今月</button>
-        <button class="small-button" id="nextMonth" aria-label="次の月">›</button>
+      <div class="calendar-actions">
+        <button class="add-button" id="toggleAvailability">⌕ 空き時間を探す</button>
+        <div class="calendar-nav">
+          <button class="small-button" id="prevMonth" aria-label="前の月">‹</button>
+          <button class="small-button" id="calendarToday">今月</button>
+          <button class="small-button" id="nextMonth" aria-label="次の月">›</button>
+        </div>
       </div>
     </div>
     <div class="calendar-weekdays">
@@ -615,6 +650,29 @@
       <span><i class="legend-dot"></i>カット</span>
       <span><i class="legend-dot color"></i>カラー</span>
       <span>日付を選ぶと下に予約一覧を表示</span>
+    </div>
+  </section>
+
+  <section class="availability-panel" id="availabilityPanel">
+    <h2 class="availability-heading">空き時間検索</h2>
+    <div class="availability-controls">
+      <div>
+        <label for="searchDate">予約希望日</label>
+        <input type="date" id="searchDate">
+      </div>
+      <div>
+        <label for="searchMenu">メニュー</label>
+        <select id="searchMenu">
+          <option value="カット">カット（60分）</option>
+          <option value="カラー">カラー（120分）</option>
+        </select>
+      </div>
+      <div class="search-action">
+        <button class="add-button" id="runAvailabilitySearch">空きを検索</button>
+      </div>
+    </div>
+    <div class="availability-results" id="availabilityResults">
+      <div class="availability-empty">日付とメニューを選んで「空きを検索」を押してください。</div>
     </div>
   </section>
 
@@ -914,17 +972,18 @@
       `現在 ${times.length} 枠の空きがあります。営業時間 9:00～19:00`;
   }
 
-  function openModal() {
-    reserveDate.value = selectedDate.value;
+  function openModal(date = selectedDate.value, menu = "カット", presetTime = "") {
+    reserveDate.value = date;
     document.getElementById("reserveName").value = "";
     warning.classList.remove("show");
-    selectedMenu = "カット";
+    selectedMenu = menu;
 
     document.querySelectorAll(".menu-option").forEach(button => {
       button.classList.toggle("selected", button.dataset.menu === selectedMenu);
     });
 
     updateTimeOptions();
+    if (presetTime) reserveTime.value = presetTime;
     modalBackdrop.classList.add("show");
   }
 
@@ -946,6 +1005,52 @@
     render();
     showToast("予約を削除しました");
   }
+
+  const availabilityPanel = document.getElementById("availabilityPanel");
+  const searchDate = document.getElementById("searchDate");
+  const searchMenu = document.getElementById("searchMenu");
+  const availabilityResults = document.getElementById("availabilityResults");
+
+  document.getElementById("toggleAvailability").addEventListener("click", () => {
+    const isOpening = !availabilityPanel.classList.contains("show");
+    availabilityPanel.classList.toggle("show", isOpening);
+    if (isOpening) {
+      searchDate.value = selectedDate.value;
+      searchMenu.value = "カット";
+      searchDate.focus();
+      searchAvailability();
+    }
+  });
+
+  function searchAvailability() {
+    const date = searchDate.value;
+    const menu = searchMenu.value;
+    if (!date) {
+      availabilityResults.innerHTML = '<div class="availability-empty">予約希望日を選択してください。</div>';
+      return;
+    }
+    const times = getAvailableTimes(date, menu);
+    if (times.length === 0) {
+      availabilityResults.innerHTML = '<div class="availability-empty">この日に予約可能な時間はありません。別の日付をお試しください。</div>';
+      return;
+    }
+    availabilityResults.innerHTML = times.map(time =>
+      `<button type="button" class="available-slot" data-slot="${time}">${time} ～ ${formatTime(timeToMinutes(time) + duration(menu))}</button>`
+    ).join("");
+    availabilityResults.querySelectorAll("[data-slot]").forEach(button => {
+      button.addEventListener("click", () => {
+        selectedDate.value = date;
+        calendarMonth = new Date(date + "T00:00:00");
+        calendarMonth.setDate(1);
+        render();
+        openModal(date, menu, button.dataset.slot);
+      });
+    });
+  }
+
+  document.getElementById("runAvailabilitySearch").addEventListener("click", searchAvailability);
+  searchDate.addEventListener("change", searchAvailability);
+  searchMenu.addEventListener("change", searchAvailability);
 
   document.getElementById("openModal").addEventListener("click", openModal);
   document.getElementById("closeModal").addEventListener("click", closeModal);
