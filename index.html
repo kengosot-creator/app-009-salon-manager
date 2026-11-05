@@ -267,6 +267,20 @@
 
     .delete-button:hover { color: var(--danger); }
 
+    .reservation-actions { display:flex; align-items:center; gap:5px; }
+    .detail-button {
+      border:1px solid var(--line); background:#fff; color:var(--green-dark);
+      border-radius:9px; padding:7px 10px; font-size:11px; white-space:nowrap;
+    }
+    .detail-button:hover { background:var(--green-light); }
+    .detail-grid { display:grid; grid-template-columns:100px 1fr; gap:13px 12px; font-size:13px; }
+    .detail-label { color:var(--muted); }
+    .detail-value { font-weight:600; overflow-wrap:anywhere; }
+    .detail-actions { display:flex; gap:10px; margin-top:25px; }
+    .detail-actions button { flex:1; }
+    .secondary-action { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:11px; padding:12px; font-weight:600; }
+    .danger-action { border:1px solid #E8CFCF; background:#FFF8F8; color:var(--danger); border-radius:11px; padding:12px; font-weight:600; }
+
     .empty {
       padding: 55px 15px;
       text-align: center;
@@ -670,6 +684,8 @@
       .customer-name { font-size: 13px; }
       .menu-tag { padding: 5px 8px; font-size: 10px; }
       .delete-button { font-size: 11px; padding: 4px; }
+      .reservation-actions { flex-direction:column; align-items:stretch; gap:2px; }
+      .detail-button { padding:5px 7px; font-size:10px; }
     }
 
     .header-tools { display:flex; align-items:center; gap:14px; }
@@ -971,6 +987,27 @@
   </div>
 </div>
 
+<!-- 予約詳細モーダル -->
+<div class="modal-backdrop" id="detailBackdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>予約詳細</h2>
+      <button type="button" class="close-button" id="closeDetail">×</button>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-label">お客様</div><div class="detail-value" id="detailName"></div>
+      <div class="detail-label">予約日</div><div class="detail-value" id="detailDate"></div>
+      <div class="detail-label">時間</div><div class="detail-value" id="detailTime"></div>
+      <div class="detail-label">メニュー</div><div class="detail-value" id="detailMenu"></div>
+      <div class="detail-label">料金</div><div class="detail-value" id="detailPrice"></div>
+    </div>
+    <div class="detail-actions">
+      <button type="button" class="secondary-action" id="editReservation">予約を編集</button>
+      <button type="button" class="danger-action" id="deleteDetailReservation">削除</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1008,6 +1045,8 @@
 
   let reservations = loadReservations();
   let selectedMenu = "カット";
+  let editingReservationId = null;
+  let detailReservationId = null;
 
   function loadSettings() {
     try {
@@ -1099,7 +1138,7 @@
     });
   }
 
-  function getAvailableTimes(date, menu) {
+  function getAvailableTimes(date, menu, ignoreId = null) {
     const length = duration(menu);
     const result = [];
     if (isClosedDate(date)) return result;
@@ -1115,7 +1154,7 @@
       // 今日については、すでに過ぎた開始時刻を空き枠に含めない
       if (isToday && min < currentMinutes) continue;
       const time = formatTime(min);
-      if (isAvailable(date, time, length)) result.push(time);
+      if (isAvailable(date, time, length, ignoreId)) result.push(time);
     }
 
     return result;
@@ -1230,15 +1269,19 @@
           <div class="customer-name">${escapeHTML(r.name)}</div>
           <div class="reservation-detail">${escapeHTML(r.menu)} ・ ${duration(r.menu)}分</div>
         </div>
-        <div style="display:flex;align-items:center;gap:5px;">
+        <div class="reservation-actions">
           <span class="menu-tag ${r.menu === "カラー" ? "color" : ""}">
             ${escapeHTML(r.menu)}
           </span>
-          <button class="delete-button" data-delete="${escapeHTML(r.id)}">削除</button>
+          <button type="button" class="detail-button" data-detail="${escapeHTML(r.id)}">詳細・編集</button>
+          <button type="button" class="delete-button" data-delete="${escapeHTML(r.id)}">削除</button>
         </div>
       </div>
     `).join("");
 
+    container.querySelectorAll("[data-detail]").forEach(button => {
+      button.addEventListener("click", () => showReservationDetail(button.dataset.detail));
+    });
     container.querySelectorAll("[data-delete]").forEach(button => {
       button.addEventListener("click", () => deleteReservation(button.dataset.delete));
     });
@@ -1254,9 +1297,13 @@
     })[char]);
   }
 
-  function updateTimeOptions() {
+  function updateTimeOptions(ignoreId = null, preferredTime = "") {
     const date = reserveDate.value;
-    const times = getAvailableTimes(date, selectedMenu);
+    const times = getAvailableTimes(date, selectedMenu, ignoreId);
+    if (preferredTime && isAvailable(date, preferredTime, duration(selectedMenu), ignoreId) && !times.includes(preferredTime)) {
+      times.push(preferredTime);
+      times.sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+    }
 
     reserveTime.innerHTML = "";
 
@@ -1287,23 +1334,47 @@
     });
   }
 
-  function openModal(date = selectedDate.value, menu = "カット", presetTime = "") {
-    reserveDate.value = date;
-    document.getElementById("reserveName").value = "";
+  function openModal(date = selectedDate.value, menu = "カット", presetTime = "", reservationId = null) {
+    editingReservationId = reservationId;
+    const existing = reservationId ? reservations.find(r => r.id === reservationId) : null;
+    reserveDate.value = existing ? existing.date : date;
+    document.getElementById("reserveName").value = existing ? existing.name : "";
     warning.classList.remove("show");
-    selectedMenu = menu;
+    selectedMenu = existing ? existing.menu : menu;
+    document.querySelector("#reservationForm .submit-button").textContent = existing ? "変更を保存する" : "この内容で予約する";
+    document.querySelector("#reservationForm .submit-button").disabled = false;
+    document.querySelector("#reservationForm").closest(".modal").querySelector(".modal-header h2").textContent = existing ? "予約を編集" : "新しい予約";
 
     document.querySelectorAll(".menu-option").forEach(button => {
       button.classList.toggle("selected", button.dataset.menu === selectedMenu);
     });
 
-    updateTimeOptions();
-    if (presetTime) reserveTime.value = presetTime;
+    const targetTime = existing ? existing.time : presetTime;
+    updateTimeOptions(reservationId, targetTime);
+    if (targetTime) reserveTime.value = targetTime;
     modalBackdrop.classList.add("show");
   }
 
   function closeModal() {
     modalBackdrop.classList.remove("show");
+    editingReservationId = null;
+  }
+
+  function showReservationDetail(id) {
+    const reservation = reservations.find(r => r.id === id);
+    if (!reservation) return;
+    detailReservationId = id;
+    document.getElementById("detailName").textContent = reservation.name;
+    document.getElementById("detailDate").textContent = formatDate(reservation.date);
+    document.getElementById("detailTime").textContent = `${reservation.time} ～ ${formatTime(timeToMinutes(reservation.time) + duration(reservation.menu))}`;
+    document.getElementById("detailMenu").textContent = `${reservation.menu}（${duration(reservation.menu)}分）`;
+    document.getElementById("detailPrice").textContent = `${yen(menuPrice(reservation.menu))}円`;
+    document.getElementById("detailBackdrop").classList.add("show");
+  }
+
+  function closeDetail() {
+    document.getElementById("detailBackdrop").classList.remove("show");
+    detailReservationId = null;
   }
 
   function showToast(message) {
@@ -1369,6 +1440,22 @@
 
   document.getElementById("openModal").addEventListener("click", openModal);
   document.getElementById("closeModal").addEventListener("click", closeModal);
+  document.getElementById("closeDetail").addEventListener("click", closeDetail);
+  document.getElementById("detailBackdrop").addEventListener("click", event => {
+    if (event.target.id === "detailBackdrop") closeDetail();
+  });
+  document.getElementById("editReservation").addEventListener("click", () => {
+    const id = detailReservationId;
+    const reservation = reservations.find(r => r.id === id);
+    if (!reservation) return closeDetail();
+    closeDetail();
+    openModal(reservation.date, reservation.menu, reservation.time, id);
+  });
+  document.getElementById("deleteDetailReservation").addEventListener("click", () => {
+    const id = detailReservationId;
+    closeDetail();
+    if (id) deleteReservation(id);
+  });
 
   modalBackdrop.addEventListener("click", e => {
     if (e.target === modalBackdrop) closeModal();
@@ -1422,12 +1509,12 @@
       document.querySelectorAll(".menu-option").forEach(b =>
         b.classList.toggle("selected", b === button)
       );
-      updateTimeOptions();
+      updateTimeOptions(editingReservationId, editingReservationId ? reserveTime.value : "");
       warning.classList.remove("show");
     });
   });
 
-  reserveDate.addEventListener("change", updateTimeOptions);
+  reserveDate.addEventListener("change", () => updateTimeOptions(editingReservationId, editingReservationId ? reserveTime.value : ""));
 
   document.getElementById("reservationForm").addEventListener("submit", e => {
     e.preventDefault();
@@ -1442,28 +1529,33 @@
       return;
     }
 
-    if (!isAvailable(date, time, duration(selectedMenu))) {
-      warning.textContent = "⚠️ この時間はすでに埋まっています。別の時間を選択してください。";
+    if (!isAvailable(date, time, duration(selectedMenu), editingReservationId)) {
+      warning.textContent = "⚠️ この時間は予約できません。別の時間を選択してください。";
       warning.classList.add("show");
-      updateTimeOptions();
+      updateTimeOptions(editingReservationId);
       return;
     }
 
-    reservations.push({
-      id: Date.now().toString(),
-      date,
-      time,
-      name,
-      menu: selectedMenu
-    });
+    if (editingReservationId) {
+      const index = reservations.findIndex(r => r.id === editingReservationId);
+      if (index < 0) {
+        warning.textContent = "対象の予約が見つかりません。画面を更新してください。";
+        warning.classList.add("show");
+        return;
+      }
+      reservations[index] = { ...reservations[index], date, time, name, menu: selectedMenu };
+    } else {
+      reservations.push({ id: Date.now().toString(), date, time, name, menu: selectedMenu });
+    }
 
+    const wasEditing = Boolean(editingReservationId);
     saveReservations();
     selectedDate.value = date;
     calendarMonth = new Date(date + "T00:00:00");
     calendarMonth.setDate(1);
     render();
     closeModal();
-    showToast("予約を登録しました");
+    showToast(wasEditing ? "予約を変更しました" : "予約を登録しました");
   });
 
 
