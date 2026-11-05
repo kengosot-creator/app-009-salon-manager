@@ -492,8 +492,27 @@
     .calendar-day:hover { border-color: var(--green); }
     .calendar-day.other-month { opacity: .35; background: white; }
     .calendar-day.selected { background: var(--green-light); border-color: var(--green); }
+    .calendar-day.has-availability:not(.selected) {
+      background: #EEF5EC;
+      border-color: #C9DCC5;
+    }
+    .calendar-day.has-availability:not(.selected) .day-number {
+      color: var(--green-dark);
+      font-weight: 700;
+    }
     .calendar-day.today .day-number { color: var(--green-dark); font-weight: 800; }
     .day-number { font-size: 13px; font-weight: 500; }
+    .availability-marker {
+      display: inline-block;
+      color: #527653;
+      background: #DCE8D9;
+      border-radius: 10px;
+      padding: 2px 5px;
+      font-size: 8px;
+      line-height: 1.2;
+      font-weight: 700;
+      white-space: nowrap;
+    }
     .day-menu-counts {
       display: flex;
       flex-direction: column;
@@ -522,6 +541,7 @@
     .calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
     .legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
     .legend-dot.color { background: var(--brown); }
+    .legend-dot.availability { background: #A8C5A2; }
     .calendar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .availability-panel {
       display: none;
@@ -559,6 +579,7 @@
       .calendar-day { min-height: 61px; padding: 6px 2px; gap: 4px; }
       .day-number { font-size: 12px; }
       .day-menu-count { font-size: 8px; letter-spacing: -.04em; }
+      .availability-marker { font-size: 7px; padding: 2px 3px; }
       .calendar-weekdays, .calendar-grid { gap: 3px; }
       .calendar-month { font-size: 18px; }
     }
@@ -649,6 +670,7 @@
     <div class="calendar-legend">
       <span><i class="legend-dot"></i>カット</span>
       <span><i class="legend-dot color"></i>カラー</span>
+      <span><i class="legend-dot availability"></i>空き時間あり</span>
       <span>日付を選ぶと下に予約一覧を表示</span>
     </div>
   </section>
@@ -835,12 +857,17 @@
   function getAvailableTimes(date, menu) {
     const length = duration(menu);
     const result = [];
+    const now = new Date();
+    const isToday = date === dateString(now);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     for (
       let min = openingHour * 60;
       min + length <= closingHour * 60;
       min += slotMinutes
     ) {
+      // 今日については、すでに過ぎた開始時刻を空き枠に含めない
+      if (isToday && min < currentMinutes) continue;
       const time = formatTime(min);
       if (isAvailable(date, time, length)) result.push(time);
     }
@@ -868,11 +895,17 @@
       const dayReservations = getReservations(value);
       const cutCount = dayReservations.filter(r => r.menu === "カット").length;
       const colorCount = dayReservations.filter(r => r.menu === "カラー").length;
+      // 過去日を除き、カットまたはカラーのどちらかが入る空き枠があれば「空きあり」
+      const hasAvailability = value >= todayValue && (
+        getAvailableTimes(value, "カット").length > 0 ||
+        getAvailableTimes(value, "カラー").length > 0
+      );
       const classes = [
         "calendar-day",
         d.getMonth() !== month ? "other-month" : "",
         value === selected ? "selected" : "",
-        value === todayValue ? "today" : ""
+        value === todayValue ? "today" : "",
+        hasAvailability ? "has-availability" : ""
       ].filter(Boolean).join(" ");
       const menuCounts = `
         ${cutCount ? `<span class="day-menu-count cut">カット ${cutCount}</span>` : ""}
@@ -880,6 +913,7 @@
       `;
       cells += `<button type="button" class="${classes}" data-calendar-date="${value}">
         <span class="day-number">${d.getDate()}</span>
+        ${hasAvailability ? '<span class="availability-marker">空きあり</span>' : ""}
         <span class="day-menu-counts">${menuCounts}</span>
       </button>`;
     }
